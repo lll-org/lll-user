@@ -15,8 +15,8 @@ permissions:
 env:
   JAVA_VERSION: 21
   SERVICE_NAME: "lll-user"
-  # GHCR 镜像名：ghcr.io/<owner>/lll-auth
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lll-auth
+  # GHCR 镜像名：ghcr.io/<owner>/lll-user
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lll-user
 
 jobs:
   build_and_deploy:
