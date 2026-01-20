@@ -42,17 +42,44 @@ jobs:
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
 
 
-      - name: Show generated settings.xml (redacted)
-        run: |
-          echo "===== ~/.m2/settings.xml ====="
-          sed -E 's#(<password>).*?(</password>)#\1***\2#g' ~/.m2/settings.xml
-          echo "===== mirrors ====="
-          grep -n "<mirrors>" -n ~/.m2/settings.xml -n || true
-
-
-
       - name: Build (Maven)
         run: mvn -B -ntp -U -DskipTests clean package
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR (push)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # 假设你的 Dockerfile 在仓库根目录：./Dockerfile
+      # 如果你 Dockerfile 不在根目录，改 file: 的路径即可
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+
+
+      - name: Deploy via SSH (pull & restart container)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 6000
+          script: |
+            set -e
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
