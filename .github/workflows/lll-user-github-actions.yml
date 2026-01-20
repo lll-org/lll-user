@@ -1,0 +1,58 @@
+name: lll-user-github-actions
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: lll-user-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  JAVA_VERSION: 21
+  SERVICE_NAME: "lll-user"
+  # GHCR 镜像名：ghcr.io/<owner>/lll-auth
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lll-auth
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "maven"
+
+      # 关键：让 Maven 下载依赖走 Nexus（否则会找不到你私有的 parent / common）
+      - name: Generate Maven settings.xml
+        uses: lll-org/lll-actions/.github/actions/maven-nexus-settings@v2
+        with:
+          nexus_mirror_url: ${{ secrets.NEXUS_MIRROR_URL }}
+          server_id: nexus
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+
+      - name: Show generated settings.xml (redacted)
+        run: |
+          echo "===== ~/.m2/settings.xml ====="
+          sed -E 's#(<password>).*?(</password>)#\1***\2#g' ~/.m2/settings.xml
+          echo "===== mirrors ====="
+          grep -n "<mirrors>" -n ~/.m2/settings.xml -n || true
+
+
+
+      - name: Build (Maven)
+        run: mvn -B -ntp -U -DskipTests clean package
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
