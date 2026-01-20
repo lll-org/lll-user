@@ -35,4 +35,4 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://192.168.1.100:11011/oauth2/jwks   #根据需要调整jwks的地址
+          jwk-set-uri: http://192.168.1.212:10070/oauth2/jwks

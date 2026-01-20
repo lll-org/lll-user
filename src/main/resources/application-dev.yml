@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: lll-user
+  profiles:
+    active: dev
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -31,8 +33,3 @@ spring:
       host: 192.168.1.100
       port: 10010
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://192.168.1.100:11011/oauth2/jwks   #根据需要调整jwks的地址
